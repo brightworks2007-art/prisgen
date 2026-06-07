@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ product.name }} — PRISgen int'l Limited</title>
+</head>
+<body>
+  <h1>{{ product.name }}</h1>
+  <p>Price: ₦{{ "%.0f"|format(product.price) }}</p>
+  <p>Category: {{ product.category }}</p>
+  <p>{{ product.desc }}</p>
+  <a href="/">← Back to store</a>
+</body>
+</html>
