@@ -29,6 +29,32 @@
       --red-soft:    rgba(229,57,53,0.12);
     }
 
+    /* ── Light Theme ── */
+    html.light {
+      --dark:        #F7F4FC;
+      --dark-mid:    #EDE8F7;
+      --dark-card:   #FFFFFF;
+      --dark-hover:  #E4DCF5;
+      --text:        #1A0D30;
+      --text-sec:    rgba(60,30,100,0.78);
+      --text-muted:  rgba(90,60,140,0.55);
+      --border:      rgba(123,63,190,0.2);
+      --border-lite: rgba(123,63,190,0.1);
+      --lilac:       #7B3FBE;
+      --gold:        #A0721A;
+      --gold-light:  #C9973A;
+      --red-soft:    rgba(229,57,53,0.08);
+    }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      font-family: 'DM Mono', monospace; font-size: 0.82rem;
+      padding: 6px 10px; border: 1px solid var(--border);
+      background: none; color: var(--text-muted); cursor: pointer;
+      transition: all 0.3s; line-height: 1;
+    }
+    .theme-toggle:hover { border-color: var(--lilac); color: var(--lilac); }
+
     html { scroll-behavior: smooth; }
     body {
       background: var(--dark); color: var(--text);
@@ -129,6 +155,12 @@
       font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
       padding: 10px 13px; outline: none; transition: border-color 0.3s;
       -webkit-appearance: none;
+    }
+    html.light input[type=text],
+    html.light input[type=number],
+    html.light select,
+    html.light textarea {
+      color-scheme: light;
     }
     input[type=text]:focus, input[type=number]:focus,
     select:focus, textarea:focus { border-color: var(--lilac); }
@@ -369,6 +401,7 @@
     <div class="h-badge"><div class="h-dot"></div> Lady C</div>
   </div>
   <div class="header-right">
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
     <a href="/" class="h-btn">← Store</a>
     <a href="/lady/vault" class="h-btn">Vault</a>
     <a href="/exitlady" class="h-btn danger">Exit</a>
@@ -434,7 +467,7 @@
     <label>Photos (up to 4) — tap a slot to upload</label>
     <div class="img-slots">
       <div class="img-slot" id="slot0" onclick="triggerUpload(0)">
-        <input type="file" id="file0" accept="image/*" onchange="handleFile(0, this)"/>
+        <input type="file" id="file0" accept="image/*" onclick="event.stopPropagation()" onchange="handleFile(0, this)"/>
         <div class="img-slot-label">
           <span class="slot-icon">📷</span>
           <span>Main Photo</span>
@@ -447,7 +480,7 @@
         </div>
       </div>
       <div class="img-slot" id="slot1" onclick="triggerUpload(1)">
-        <input type="file" id="file1" accept="image/*" onchange="handleFile(1, this)"/>
+        <input type="file" id="file1" accept="image/*" onclick="event.stopPropagation()" onchange="handleFile(1, this)"/>
         <div class="img-slot-label">
           <span class="slot-icon">+</span>
           <span>Photo 2</span>
@@ -460,7 +493,7 @@
         </div>
       </div>
       <div class="img-slot" id="slot2" onclick="triggerUpload(2)">
-        <input type="file" id="file2" accept="image/*" onchange="handleFile(2, this)"/>
+        <input type="file" id="file2" accept="image/*" onclick="event.stopPropagation()" onchange="handleFile(2, this)"/>
         <div class="img-slot-label">
           <span class="slot-icon">+</span>
           <span>Photo 3</span>
@@ -473,7 +506,7 @@
         </div>
       </div>
       <div class="img-slot" id="slot3" onclick="triggerUpload(3)">
-        <input type="file" id="file3" accept="image/*" onchange="handleFile(3, this)"/>
+        <input type="file" id="file3" accept="image/*" onclick="event.stopPropagation()" onchange="handleFile(3, this)"/>
         <div class="img-slot-label">
           <span class="slot-icon">+</span>
           <span>Photo 4</span>
@@ -532,6 +565,26 @@
 <script>
   const CLOUD_NAME    = '{{ cloud_name }}';
   const UPLOAD_PRESET = '{{ upload_preset }}';
+
+  // ── Theme ──
+  (function initTheme() {
+    const saved = localStorage.getItem('prisgen-admin-theme');
+    if (saved === 'light') {
+      document.documentElement.classList.add('light');
+      document.getElementById('themeToggle').textContent = '☀️';
+    }
+  })();
+
+  function toggleTheme() {
+    const btn = document.getElementById('themeToggle');
+    if (document.documentElement.classList.toggle('light')) {
+      localStorage.setItem('prisgen-admin-theme', 'light');
+      btn.textContent = '☀️';
+    } else {
+      localStorage.setItem('prisgen-admin-theme', 'dark');
+      btn.textContent = '🌙';
+    }
+  }
 
   // ── State ──
   let allProducts  = [];
@@ -648,19 +701,33 @@
           document.getElementById('slot' + i).classList.add('has-img');
           showToast('Photo uploaded ✓', 'success');
         } else {
-          showToast('Upload failed — try again', 'error');
+          let errMsg = 'Upload failed';
+          try {
+            const errData = JSON.parse(xhr.responseText);
+            // Cloudinary returns { error: { message: "..." } }
+            if (errData.error && errData.error.message) {
+              errMsg = errData.error.message;
+            }
+          } catch(_) {}
+          console.error('Cloudinary error', xhr.status, xhr.responseText);
+          showToast('Upload failed: ' + errMsg, 'error');
         }
       };
       xhr.onerror = () => {
         up.classList.remove('show');
+        console.error('Cloudinary network error. Cloud:', CLOUD_NAME, 'Preset:', UPLOAD_PRESET);
         showToast('Upload failed — check connection', 'error');
       };
       xhr.send(fd);
     } catch(e) {
       up.classList.remove('show');
-      showToast('Upload error', 'error');
+      console.error('Upload exception:', e);
+      showToast('Upload error: ' + e.message, 'error');
     }
   }
+
+  // ── Boot: confirm Cloudinary config in console ──
+  console.log('[PRISgen Admin] Cloudinary config →', { cloud: CLOUD_NAME, preset: UPLOAD_PRESET });
 
   function removeImg(e, i) {
     e.stopPropagation();
