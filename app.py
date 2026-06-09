@@ -7,7 +7,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'prisgen-ladyc-velvet-2026-xK9#mP2')
 
 # ── Database ──────────────────────────────────────────────────────────────────
-# Render provides DATABASE_URL as postgres:// but SQLAlchemy needs postgresql://
 raw_db_url = os.environ.get('DATABASE_URL', 'sqlite:///prisgen.db')
 if raw_db_url.startswith('postgres://'):
     raw_db_url = raw_db_url.replace('postgres://', 'postgresql+pg8000://', 1)
@@ -29,7 +28,6 @@ class Product(db.Model):
     desc        = db.Column(db.Text, default='')
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
     visible     = db.Column(db.Boolean, default=True)
-    # Up to 4 image URLs
     image1      = db.Column(db.String(500), nullable=True)
     image2      = db.Column(db.String(500), nullable=True)
     image3      = db.Column(db.String(500), nullable=True)
@@ -145,7 +143,7 @@ def index():
 def lady():
     ip = get_ip(); error = None
     if is_admin():
-        return redirect(url_for('index'))
+        return redirect(url_for('admin_panel'))  # ← sends straight to panel
     if request.method == 'POST':
         if is_blocked(ip):
             log_event('Blocked IP tried Lady C login', success=False)
@@ -159,7 +157,7 @@ def lady():
             session.permanent    = True
             clear_attempts(ip)
             log_event('Lady C login successful')
-            return redirect(url_for('index'))
+            return redirect(url_for('admin_panel'))  # ← lands on admin panel after login
         else:
             record_failed_attempt(ip)
             window    = datetime.utcnow() - timedelta(minutes=30)
@@ -176,17 +174,26 @@ def exitlady():
     session.clear()
     return redirect(url_for('index'))
 
+# ── Admin: Panel ──────────────────────────────────────────────────────────────
+@app.route('/lady/panel')
+def admin_panel():
+    if not is_admin():
+        return redirect(url_for('lady'))
+    return render_template('admin.html',
+                           cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'daxerardc'),
+                           upload_preset='wi6uf3xc')
+
 # ── Admin: Products API ───────────────────────────────────────────────────────
 @app.route('/admin/add', methods=['POST'])
 def add_product():
     if not is_admin():
         return jsonify({'error': 'Unauthorized'}), 403
     data = request.get_json()
-    if not data or not data.get('name') or not data.get('price'):
-        return jsonify({'error': 'Name and price are required'}), 400
+    if not data or not data.get('name'):
+        return jsonify({'error': 'Name is required'}), 400
     p = Product(
         name     = data['name'].strip(),
-        price    = float(data['price']),
+        price    = float(data.get('price', 0)),
         image1   = data.get('image1') or None,
         image2   = data.get('image2') or None,
         image3   = data.get('image3') or None,
@@ -205,14 +212,14 @@ def edit_product(pid):
         return jsonify({'error': 'Unauthorized'}), 403
     p    = Product.query.get_or_404(pid)
     data = request.get_json()
-    if data.get('name'):    p.name     = data['name'].strip()
-    if data.get('price'):   p.price    = float(data['price'])
-    if data.get('category'): p.category = data['category'].strip()
-    if 'desc'   in data:    p.desc     = data['desc'].strip()
-    if 'image1' in data:    p.image1   = data['image1'] or None
-    if 'image2' in data:    p.image2   = data['image2'] or None
-    if 'image3' in data:    p.image3   = data['image3'] or None
-    if 'image4' in data:    p.image4   = data['image4'] or None
+    if data.get('name'):      p.name     = data['name'].strip()
+    if 'price'    in data:    p.price    = float(data['price'])
+    if data.get('category'):  p.category = data['category'].strip()
+    if 'desc'     in data:    p.desc     = data['desc'].strip()
+    if 'image1'   in data:    p.image1   = data['image1'] or None
+    if 'image2'   in data:    p.image2   = data['image2'] or None
+    if 'image3'   in data:    p.image3   = data['image3'] or None
+    if 'image4'   in data:    p.image4   = data['image4'] or None
     db.session.commit()
     log_event(f'Product edited: {p.name}')
     return jsonify(product_to_dict(p))
@@ -248,27 +255,27 @@ def admin_products():
 # ── Product detail page ───────────────────────────────────────────────────────
 @app.route('/product/<int:pid>')
 def product_detail(pid):
-    product      = Product.query.get_or_404(pid)
-    # Related: same category, visible, exclude current
-    related      = Product.query.filter(
+    product  = Product.query.get_or_404(pid)
+    related  = Product.query.filter(
         Product.category == product.category,
         Product.visible  == True,
         Product.id       != pid
     ).order_by(Product.id.desc()).limit(4).all()
-    whatsapp     = os.environ.get('WHATSAPP_NUMBER', '2348023905056')
+    whatsapp = os.environ.get('WHATSAPP_NUMBER', '2348023905056')
     return render_template('product.html',
                            product=product,
                            related=related,
                            whatsapp=whatsapp,
-                           now=datetime.utcnow())
+                           now=datetime.utcnow(),
+                           is_admin=is_admin())
 
 # ── Activity vault ────────────────────────────────────────────────────────────
 @app.route('/lady/vault')
 def vault():
     if not is_admin():
         return redirect(url_for('lady'))
-    logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(100).all()
-    total_products = Product.query.count()
+    logs             = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(100).all()
+    total_products   = Product.query.count()
     visible_products = Product.query.filter_by(visible=True).count()
     return render_template('vault.html',
                            logs=logs,
