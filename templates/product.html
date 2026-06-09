@@ -291,9 +291,15 @@
     .rc-img {
       width:100%;aspect-ratio:1;background:var(--dark-mid);
       margin-bottom:16px;display:flex;align-items:center;justify-content:center;
-      overflow:hidden;font-size:2.5rem;opacity:.2;
+      overflow:hidden;font-size:2.5rem;opacity:.2;position:relative;
     }
-    .rc-img img { width:100%;height:100%;object-fit:cover;opacity:1; }
+    .rc-img img { width:100%;height:100%;object-fit:cover;opacity:1;position:absolute;inset:0;transition:opacity 0.6s ease; }
+    .rc-img img.slide-hidden { opacity:0;pointer-events:none; }
+    .slide-dots{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3;}
+    .slide-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.4);transition:background 0.3s,transform 0.3s;cursor:pointer;}
+    .slide-dot.active{background:#fff;transform:scale(1.3);}
+    .slide-prev,.slide-next{position:absolute;top:0;bottom:0;width:40%;z-index:2;cursor:pointer;}
+    .slide-prev{left:0;} .slide-next{right:0;}
     .rc-cat {
       font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.2em;
       text-transform:uppercase;color:var(--lilac);margin-bottom:6px;
@@ -552,11 +558,21 @@
     <div class="related-grid">
       {% for r in related %}
       <a href="/product/{{ r.id }}" class="related-card reveal {% if loop.index > 1 %}rd{{ [loop.index0 % 3, 3] | min }}{% endif %}">
-        <div class="rc-img">
-          {% if r.image1 %}
-            <img src="{{ r.image1 }}" alt="{{ r.name }}"/>
+        {% set rimgs = [r.image1, r.image2, r.image3, r.image4] | select | list %}
+        <div class="rc-img" data-slide="0">
+          {% if rimgs %}
+            {% for img in rimgs %}
+            <img src="{{ img }}" alt="{{ r.name }}" class="{% if not loop.first %}slide-hidden{% endif %}"/>
+            {% endfor %}
           {% else %}
             {% if 'bag' in r.name | lower or 'tote' in r.name | lower %}👜{% elif 'platform' in r.name | lower %}👡{% else %}👠{% endif %}
+          {% endif %}
+          {% if rimgs | length > 1 %}
+          <div class="slide-prev" onclick="slideCard(event,this.parentElement,-1)"></div>
+          <div class="slide-next" onclick="slideCard(event,this.parentElement,1)"></div>
+          <div class="slide-dots">
+            {% for img in rimgs %}<div class="slide-dot {% if loop.first %}active{% endif %}"></div>{% endfor %}
+          </div>
           {% endif %}
         </div>
         <p class="rc-cat">{{ r.category }}</p>
@@ -732,7 +748,29 @@
     closeOrder();
   }
 
-  // ── Share ──
+  // ── Per-card slideshow (related products) ──
+  function slideCard(e, imgDiv, dir) {
+    e.preventDefault(); e.stopPropagation();
+    const imgs = imgDiv.querySelectorAll('img');
+    const dots = imgDiv.querySelectorAll('.slide-dot');
+    if (imgs.length < 2) return;
+    let cur = parseInt(imgDiv.dataset.slide) || 0;
+    imgs[cur].classList.add('slide-hidden');
+    dots[cur] && dots[cur].classList.remove('active');
+    cur = (cur + dir + imgs.length) % imgs.length;
+    imgs[cur].classList.remove('slide-hidden');
+    dots[cur] && dots[cur].classList.add('active');
+    imgDiv.dataset.slide = cur;
+  }
+  function initSlideshows() {
+    document.querySelectorAll('.rc-img[data-slide]').forEach(imgDiv => {
+      const imgs = imgDiv.querySelectorAll('img');
+      if (imgs.length < 2) return;
+      setInterval(() => slideCard({ preventDefault:()=>{}, stopPropagation:()=>{} }, imgDiv, 1), 5000);
+    });
+  }
+  initSlideshows();
+
   function shareWA(){
     const msg = `Check out ${PRODUCT.name} on PRISgen int'l Limited 👠\n${window.location.href}`;
     window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');

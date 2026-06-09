@@ -171,9 +171,18 @@
     .product-card:hover{border-color:var(--lilac);transform:translateY(-4px);}
     .product-card.hidden{display:none;}
     .product-img{width:100%;aspect-ratio:4/3;background:var(--bg-mid);margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
-    .product-img img{width:100%;height:100%;object-fit:cover;}
+    .product-img img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:opacity 0.6s ease;}
+    .product-img img.slide-hidden{opacity:0;pointer-events:none;}
     .product-img-placeholder{font-size:3rem;opacity:.12;}
-    .product-new-tag{position:absolute;top:10px;left:10px;font-family:'DM Mono',monospace;font-size:.44rem;letter-spacing:.2em;text-transform:uppercase;background:var(--gold);color:#0A0612;padding:4px 8px;}
+    .product-new-tag{position:absolute;top:10px;left:10px;font-family:'DM Mono',monospace;font-size:.44rem;letter-spacing:.2em;text-transform:uppercase;background:var(--gold);color:#0A0612;padding:4px 8px;z-index:3;}
+    /* Slideshow dots */
+    .slide-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3;}
+    .slide-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.45);transition:background 0.3s,transform 0.3s;cursor:pointer;}
+    .slide-dot.active{background:#fff;transform:scale(1.3);}
+    /* Tap zones */
+    .slide-prev,.slide-next{position:absolute;top:0;bottom:0;width:40%;z-index:2;cursor:pointer;}
+    .slide-prev{left:0;}
+    .slide-next{right:0;}
     .product-brand{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;color:var(--purple);margin-bottom:6px;}
     .product-name{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:600;line-height:1.2;margin-bottom:8px;}
     .product-name em{font-style:italic;color:var(--gold);}
@@ -426,14 +435,24 @@
          data-name="{{ p.name | lower }}"
          data-desc="{{ p.desc | lower }}"
          data-cat="{{ p.category | lower | replace(' ','_') | replace('&','and') }}">
-        <div class="product-img">
-          {% if p.image1 %}<img src="{{ p.image1 }}" alt="{{ p.name }}" loading="lazy"/>
-          {% set is_new = (now - p.created_at).days < 14 %}
-          {% if is_new %}<span class="product-new-tag">New</span>{% endif %}
+        {% set is_new = (now - p.created_at).days < 14 %}
+        {% set imgs = [p.image1, p.image2, p.image3, p.image4] | select | list %}
+        <div class="product-img" data-slide="0"
+             data-images="{{ imgs | join('|') }}">
+          {% if imgs %}
+            {% for img in imgs %}
+            <img src="{{ img }}" alt="{{ p.name }}" loading="lazy" class="{% if not loop.first %}slide-hidden{% endif %}"/>
+            {% endfor %}
           {% else %}
           <span class="product-img-placeholder">{% if 'bag' in p.name|lower or 'tote' in p.name|lower or 'satchel' in p.name|lower %}👜{% elif 'platform' in p.name|lower %}👡{% else %}👠{% endif %}</span>
-          {% set is_new = (now - p.created_at).days < 14 %}
+          {% endif %}
           {% if is_new %}<span class="product-new-tag">New</span>{% endif %}
+          {% if imgs | length > 1 %}
+          <div class="slide-prev" onclick="slideCard(event,this.parentElement,-1)"></div>
+          <div class="slide-next" onclick="slideCard(event,this.parentElement,1)"></div>
+          <div class="slide-dots">
+            {% for img in imgs %}<div class="slide-dot {% if loop.first %}active{% endif %}"></div>{% endfor %}
+          </div>
           {% endif %}
         </div>
         <p class="product-brand">{{ p.category }}</p>
@@ -455,14 +474,24 @@
          data-name="{{ p.name | lower }}"
          data-desc="{{ p.desc | lower }}"
          data-cat="{{ p.category | lower | replace(' ','_') | replace('&','and') }}">
-        <div class="product-img">
-          {% if p.image1 %}<img src="{{ p.image1 }}" alt="{{ p.name }}" loading="lazy"/>
-          {% set is_new = (now - p.created_at).days < 14 %}
-          {% if is_new %}<span class="product-new-tag">New</span>{% endif %}
+        {% set is_new = (now - p.created_at).days < 14 %}
+        {% set imgs = [p.image1, p.image2, p.image3, p.image4] | select | list %}
+        <div class="product-img" data-slide="0"
+             data-images="{{ imgs | join('|') }}">
+          {% if imgs %}
+            {% for img in imgs %}
+            <img src="{{ img }}" alt="{{ p.name }}" loading="lazy" class="{% if not loop.first %}slide-hidden{% endif %}"/>
+            {% endfor %}
           {% else %}
           <span class="product-img-placeholder">{% if 'bag' in p.name|lower or 'tote' in p.name|lower %}👜{% elif 'platform' in p.name|lower %}👡{% else %}👠{% endif %}</span>
-          {% set is_new = (now - p.created_at).days < 14 %}
+          {% endif %}
           {% if is_new %}<span class="product-new-tag">New</span>{% endif %}
+          {% if imgs | length > 1 %}
+          <div class="slide-prev" onclick="slideCard(event,this.parentElement,-1)"></div>
+          <div class="slide-next" onclick="slideCard(event,this.parentElement,1)"></div>
+          <div class="slide-dots">
+            {% for img in imgs %}<div class="slide-dot {% if loop.first %}active{% endif %}"></div>{% endfor %}
+          </div>
           {% endif %}
         </div>
         <p class="product-brand">{{ p.category }}</p>
@@ -761,7 +790,31 @@
     closeOrder();
   }
 
-  // ── Enquiry ──
+  // ── Per-card slideshow ──
+  function slideCard(e, imgDiv, dir) {
+    e.preventDefault(); e.stopPropagation();
+    const imgs = imgDiv.querySelectorAll('img');
+    const dots = imgDiv.querySelectorAll('.slide-dot');
+    if (imgs.length < 2) return;
+    let cur = parseInt(imgDiv.dataset.slide) || 0;
+    imgs[cur].classList.add('slide-hidden');
+    dots[cur] && dots[cur].classList.remove('active');
+    cur = (cur + dir + imgs.length) % imgs.length;
+    imgs[cur].classList.remove('slide-hidden');
+    dots[cur] && dots[cur].classList.add('active');
+    imgDiv.dataset.slide = cur;
+  }
+
+  // Auto-play every 5 seconds
+  function initSlideshows() {
+    document.querySelectorAll('.product-img[data-images]').forEach(imgDiv => {
+      const imgs = imgDiv.querySelectorAll('img');
+      if (imgs.length < 2) return;
+      setInterval(() => slideCard({ preventDefault:()=>{}, stopPropagation:()=>{} }, imgDiv, 1), 5000);
+    });
+  }
+  initSlideshows();
+
   function sendEnquiry(){
     const name=document.getElementById('efName').value.trim();
     const phone=document.getElementById('efPhone').value.trim();
