@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ product.name }} — PRISgen int'l Limited</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,300;1,400;1,600&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:        #7B3FBE;
+      --purple-mid:    #9B59D0;
+      --purple-dark:   #3D1A6E;
+      --lilac:         #C8A8E9;
+      --lilac-light:   #E4D0F7;
+      --lilac-faint:   rgba(200,168,233,0.12);
+      --gold:          #C9973A;
+      --gold-light:    #E8C97A;
+      --dark:          #0A0612;
+      --dark-mid:      #130D20;
+      --dark-card:     #1A1028;
+      --dark-section:  #0F0A1A;
+      --text:          #F5EEFF;
+      --text-sec:      rgba(220,190,255,0.82);
+      --text-sub:      rgba(200,168,233,0.9);
+      --text-muted:    rgba(200,168,233,0.5);
+      --border:        rgba(200,168,233,0.18);
+      --border-light:  rgba(200,168,233,0.09);
+      --pink:          #E8A0B4;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--dark);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── Custom Cursor ── */
+    .cursor { width:9px;height:9px;background:var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .25s,height .25s; }
+    .cursor-ring { width:34px;height:34px;border:1px solid var(--lilac);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.5;transition:opacity .3s; }
+    @media(hover:none){.cursor,.cursor-ring{display:none;}}
+
+    /* ── Reveal ── */
+    .reveal { opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease; }
+    .reveal.visible { opacity:1;transform:translateY(0); }
+    .rd1{transition-delay:.1s;} .rd2{transition-delay:.2s;} .rd3{transition-delay:.3s;}
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    /* ── Nav ── */
+    nav {
+      position:fixed;top:0;left:0;right:0;z-index:500;
+      padding:22px 48px;display:flex;align-items:center;
+      justify-content:space-between;transition:background .4s,padding .4s;
+    }
+    nav.scrolled {
+      background:rgba(13,8,26,.94);backdrop-filter:blur(18px);
+      padding:14px 48px;border-bottom:1px solid var(--border);
+    }
+    .nav-logo {
+      font-family:'Cormorant Garamond',serif;font-size:1.5rem;
+      font-weight:700;letter-spacing:.12em;color:var(--text);text-decoration:none;
+    }
+    .nav-logo span { color:var(--gold);font-style:italic; }
+    .nav-links { display:flex;gap:32px;list-style:none; }
+    .nav-links a {
+      font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.2em;
+      text-transform:uppercase;color:var(--text-sec);text-decoration:none;
+      transition:color .3s;position:relative;
+    }
+    .nav-links a::after {
+      content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;
+      background:var(--gold);transition:width .35s;
+    }
+    .nav-links a:hover { color:var(--gold); }
+    .nav-links a:hover::after { width:100%; }
+    .nav-cta {
+      font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.2em;
+      text-transform:uppercase;background:var(--purple);color:#fff;
+      padding:9px 22px;text-decoration:none;border:1px solid rgba(200,168,233,.3);
+      transition:background .3s;
+    }
+    .nav-cta:hover { background:var(--purple-mid); }
+    .nav-hamburger { display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px; }
+    .nav-hamburger span { display:block;width:22px;height:1px;background:var(--text); }
+    .nav-mobile {
+      display:none;position:fixed;inset:0;z-index:490;
+      background:rgba(10,6,18,.97);backdrop-filter:blur(20px);
+      flex-direction:column;align-items:center;justify-content:center;gap:32px;
+    }
+    .nav-mobile.open { display:flex; }
+    .nav-mobile a {
+      font-family:'DM Mono',monospace;font-size:.9rem;letter-spacing:.3em;
+      text-transform:uppercase;color:var(--text);text-decoration:none;
+      transition:color .3s;
+    }
+    .nav-mobile a:hover { color:var(--gold); }
+    .nav-mobile-close {
+      position:absolute;top:24px;right:24px;font-size:1.4rem;
+      color:var(--text-muted);cursor:pointer;background:none;border:none;
+    }
+    @media(max-width:768px){
+      .nav-links,.nav-cta{display:none;}
+      .nav-hamburger{display:flex;}
+      nav{padding:18px 24px;}
+      nav.scrolled{padding:12px 24px;}
+    }
+
+    /* ── Breadcrumb ── */
+    .breadcrumb {
+      padding:120px 48px 0;max-width:1200px;margin:0 auto;
+      display:flex;align-items:center;gap:10px;
+      font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.2em;text-transform:uppercase;
+    }
+    .breadcrumb a { color:var(--text-muted);text-decoration:none;transition:color .3s; }
+    .breadcrumb a:hover { color:var(--lilac); }
+    .breadcrumb-sep { color:var(--text-muted);opacity:.4; }
+    .breadcrumb-current { color:var(--gold); }
+    @media(max-width:768px){ .breadcrumb{padding:100px 24px 0;} }
+
+    /* ── Product Detail ── */
+    .product-detail {
+      max-width:1200px;margin:0 auto;
+      padding:40px 48px 100px;
+      display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;
+    }
+    @media(max-width:960px){ .product-detail{grid-template-columns:1fr;gap:48px;padding:32px 24px 80px;} }
+
+    /* ── Gallery ── */
+    .gallery { position:sticky;top:100px; }
+    .gallery-main {
+      width:100%;aspect-ratio:1;background:var(--dark-card);
+      border:1px solid var(--border);overflow:hidden;position:relative;
+      cursor:zoom-in;
+    }
+    .gallery-main img {
+      width:100%;height:100%;object-fit:cover;
+      transition:transform .6s ease;
+    }
+    .gallery-main:hover img { transform:scale(1.04); }
+    .gallery-main-placeholder {
+      width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+      font-size:6rem;opacity:.12;
+    }
+    .gallery-new-badge {
+      position:absolute;top:16px;left:16px;
+      font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.25em;
+      text-transform:uppercase;background:var(--gold);color:var(--dark);
+      padding:6px 12px;z-index:2;
+    }
+    .gallery-thumbs {
+      display:flex;gap:2px;margin-top:2px;
+    }
+    .gallery-thumb {
+      flex:1;aspect-ratio:1;background:var(--dark-card);border:1px solid var(--border-light);
+      overflow:hidden;cursor:pointer;transition:border-color .3s;
+      display:flex;align-items:center;justify-content:center;font-size:1.5rem;opacity:.4;
+    }
+    .gallery-thumb img { width:100%;height:100%;object-fit:cover; }
+    .gallery-thumb.active { border-color:var(--gold);opacity:1; }
+    .gallery-thumb:hover { border-color:var(--lilac);opacity:1; }
+    @media(max-width:960px){ .gallery{position:static;} }
+
+    /* ── Product Info ── */
+    .product-info { animation:fadeUp .7s ease .1s both; }
+    .pi-tag {
+      font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.3em;
+      text-transform:uppercase;color:var(--gold);margin-bottom:10px;display:block;
+    }
+    .pi-category {
+      font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.22em;
+      text-transform:uppercase;color:var(--lilac);margin-bottom:14px;display:block;
+    }
+    .pi-name {
+      font-family:'Cormorant Garamond',serif;
+      font-size:clamp(2.2rem,4vw,3.2rem);
+      font-weight:700;line-height:1.05;margin-bottom:20px;
+    }
+    .pi-name em { font-style:italic;color:var(--gold); }
+    .pi-divider { height:1px;background:var(--border);margin:24px 0; }
+    .pi-price {
+      font-family:'DM Mono',monospace;font-size:1.5rem;
+      color:var(--text);margin-bottom:8px;
+    }
+    .pi-price-req {
+      font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.2em;
+      text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;
+    }
+    .pi-origin {
+      font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.18em;
+      text-transform:uppercase;color:var(--text-muted);margin-bottom:24px;
+      display:flex;align-items:center;gap:6px;
+    }
+    .pi-desc {
+      font-size:.95rem;color:var(--text-sec);line-height:1.85;margin-bottom:32px;
+    }
+
+    /* Size selector */
+    .pi-size-label {
+      font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.22em;
+      text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;display:block;
+    }
+    .pi-size-note {
+      font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.15em;
+      text-transform:uppercase;color:var(--text-muted);margin-top:6px;margin-bottom:24px;
+    }
+    .pi-sizes { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px; }
+    .pi-size-btn {
+      font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.12em;
+      text-transform:uppercase;padding:9px 16px;
+      border:1px solid var(--border);background:none;
+      color:var(--text-sub);cursor:pointer;transition:all .3s;
+    }
+    .pi-size-btn:hover { border-color:var(--lilac);color:var(--lilac); }
+    .pi-size-btn.selected { border-color:var(--gold);background:rgba(201,151,58,.1);color:var(--gold); }
+
+    /* CTA buttons */
+    .pi-ctas { display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px; }
+    .pi-btn-order {
+      flex:1;min-width:200px;font-family:'DM Mono',monospace;font-size:.65rem;
+      letter-spacing:.28em;text-transform:uppercase;
+      background:#25D366;color:#fff;border:none;
+      padding:18px 28px;cursor:pointer;
+      transition:background .3s,transform .2s;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+    }
+    .pi-btn-order:hover { background:#20C05A;transform:translateY(-2px); }
+    .pi-btn-enquire {
+      font-family:'DM Mono',monospace;font-size:.65rem;
+      letter-spacing:.28em;text-transform:uppercase;
+      border:1px solid var(--border);color:var(--text-sub);
+      padding:18px 24px;cursor:pointer;background:none;
+      transition:border-color .3s,color .3s;text-decoration:none;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .pi-btn-enquire:hover { border-color:var(--lilac);color:var(--lilac); }
+
+    /* Trust strip */
+    .pi-trust {
+      display:flex;gap:20px;flex-wrap:wrap;padding:18px 0;
+      border-top:1px solid var(--border-light);border-bottom:1px solid var(--border-light);
+      margin-bottom:28px;
+    }
+    .pi-trust-item {
+      display:flex;align-items:center;gap:8px;
+      font-family:'DM Mono',monospace;font-size:.48rem;
+      letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);
+    }
+    .pi-trust-item span { font-size:.9rem; }
+
+    /* Share row */
+    .pi-share {
+      display:flex;align-items:center;gap:14px;
+      font-family:'DM Mono',monospace;font-size:.48rem;
+      letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted);
+    }
+    .pi-share-btn {
+      background:none;border:1px solid var(--border-light);color:var(--text-muted);
+      font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.12em;
+      text-transform:uppercase;padding:7px 14px;cursor:pointer;
+      transition:all .3s;text-decoration:none;
+    }
+    .pi-share-btn:hover { border-color:var(--lilac);color:var(--lilac); }
+
+    /* ── Related Products ── */
+    .related-section { padding:80px 48px 100px;background:var(--dark-section); }
+    .related-inner { max-width:1200px;margin:0 auto; }
+    .section-tag {
+      font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.35em;
+      text-transform:uppercase;color:var(--gold);margin-bottom:12px;display:block;
+    }
+    .related-title {
+      font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3rem);
+      font-weight:700;line-height:1.1;margin-bottom:40px;
+    }
+    .related-title em { font-style:italic;color:var(--lilac); }
+    .related-grid {
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+      gap:2px;
+    }
+    .related-card {
+      background:var(--dark-card);border:1px solid var(--border-light);
+      padding:24px;transition:border-color .3s,transform .3s;
+      text-decoration:none;color:inherit;display:block;
+    }
+    .related-card:hover { border-color:var(--lilac);transform:translateY(-4px); }
+    .rc-img {
+      width:100%;aspect-ratio:1;background:var(--dark-mid);
+      margin-bottom:16px;display:flex;align-items:center;justify-content:center;
+      overflow:hidden;font-size:2.5rem;opacity:.2;position:relative;
+    }
+    .rc-img img { width:100%;height:100%;object-fit:cover;opacity:1;position:absolute;inset:0;transition:opacity 0.6s ease; }
+    .rc-img img.slide-hidden { opacity:0;pointer-events:none; }
+    .slide-dots{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3;}
+    .slide-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.4);transition:background 0.3s,transform 0.3s;cursor:pointer;}
+    .slide-dot.active{background:#fff;transform:scale(1.3);}
+    .slide-prev,.slide-next{position:absolute;top:0;bottom:0;width:40%;z-index:2;cursor:pointer;}
+    .slide-prev{left:0;} .slide-next{right:0;}
+    .rc-cat {
+      font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:.2em;
+      text-transform:uppercase;color:var(--lilac);margin-bottom:6px;
+    }
+    .rc-name {
+      font-family:'Cormorant Garamond',serif;font-size:1.1rem;
+      font-weight:600;line-height:1.2;margin-bottom:8px;
+    }
+    .rc-price {
+      font-family:'DM Mono',monospace;font-size:.72rem;color:var(--text-sub);
+    }
+    .rc-price.no-price { color:var(--text-muted);font-size:.55rem;letter-spacing:.12em; }
+    @media(max-width:768px){ .related-section{padding:60px 24px 80px;} }
+
+    /* ── WhatsApp Bubble ── */
+    .wa-bubble {
+      position:fixed;bottom:28px;right:28px;z-index:400;
+      width:56px;height:56px;border-radius:50%;
+      background:#25D366;display:flex;align-items:center;justify-content:center;
+      font-size:1.6rem;text-decoration:none;
+      box-shadow:0 4px 24px rgba(37,211,102,.4);
+      transition:transform .3s,box-shadow .3s;
+      animation:waPulse 3s ease-in-out infinite;
+    }
+    .wa-bubble:hover{transform:scale(1.12);box-shadow:0 6px 32px rgba(37,211,102,.6);}
+    @keyframes waPulse{
+      0%,100%{box-shadow:0 4px 24px rgba(37,211,102,.4);}
+      50%{box-shadow:0 4px 40px rgba(37,211,102,.7),0 0 0 8px rgba(37,211,102,.1);}
+    }
+
+    /* ── Order Modal ── */
+    .modal-overlay {
+      position:fixed;inset:0;z-index:800;background:rgba(10,6,18,.85);
+      backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:24px;
+    }
+    .modal-overlay.open{display:flex;}
+    .modal {
+      background:var(--dark-card);border:1px solid var(--border);
+      width:100%;max-width:460px;padding:40px;position:relative;
+      animation:fadeUp .4s ease both;
+    }
+    .modal-close {
+      position:absolute;top:16px;right:18px;background:none;border:none;
+      color:var(--text-muted);font-size:1.3rem;cursor:pointer;transition:color .3s;
+    }
+    .modal-close:hover{color:var(--text);}
+    .modal-tag{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+    .modal-title{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;margin-bottom:6px;}
+    .modal-title em{font-style:italic;color:var(--lilac);}
+    .modal-cat{font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:24px;}
+    .modal-price{font-family:'DM Mono',monospace;font-size:1rem;color:var(--text);margin-bottom:24px;}
+    .modal-divider{height:1px;background:var(--border);margin-bottom:24px;}
+    .modal-label{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;display:block;}
+    .modal-input {
+      width:100%;background:var(--dark-mid);border:1px solid var(--border);
+      color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;
+      padding:11px 14px;outline:none;margin-bottom:14px;transition:border-color .3s;
+    }
+    .modal-input:focus{border-color:var(--lilac);}
+    .modal-wa-btn {
+      width:100%;background:#25D366;color:#fff;border:none;
+      font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:.28em;
+      text-transform:uppercase;padding:15px;cursor:pointer;
+      transition:background .3s,transform .2s;margin-top:6px;
+    }
+    .modal-wa-btn:hover{background:#20C05A;transform:translateY(-2px);}
+
+    /* ── Admin Bar ── */
+    .admin-bar {
+      position:fixed;bottom:0;left:0;right:0;z-index:600;
+      background:rgba(26,16,40,.96);backdrop-filter:blur(12px);
+      border-top:1px solid rgba(200,168,233,.25);
+      padding:10px 24px;display:flex;align-items:center;
+      justify-content:space-between;flex-wrap:wrap;gap:10px;
+    }
+    .admin-bar-left{display:flex;align-items:center;gap:12px;}
+    .admin-bar-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+    .admin-bar-text{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);}
+    .admin-bar-btns{display:flex;gap:8px;}
+    .admin-btn {
+      font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.15em;
+      text-transform:uppercase;padding:7px 14px;border:1px solid var(--border);
+      color:var(--text-muted);text-decoration:none;cursor:pointer;
+      background:none;transition:all .3s;
+    }
+    .admin-btn:hover{color:var(--text);border-color:var(--lilac);}
+    .admin-btn.danger{border-color:rgba(229,57,53,.3);color:rgba(229,57,53,.7);}
+    .admin-btn.danger:hover{border-color:#E53935;color:#E53935;}
+
+    /* ── Footer ── */
+    footer { background:var(--dark-mid);border-top:1px solid var(--border); }
+    .footer-main {
+      max-width:1200px;margin:0 auto;padding:64px 48px 48px;
+      display:grid;grid-template-columns:2fr 1fr 1fr;gap:48px;
+    }
+    .footer-logo {
+      font-family:'Cormorant Garamond',serif;font-size:1.6rem;
+      font-weight:700;letter-spacing:.1em;color:var(--text);margin-bottom:12px;
+    }
+    .footer-logo span{font-style:italic;color:var(--gold);}
+    .footer-tagline{font-size:.82rem;color:var(--text-muted);line-height:1.75;margin-bottom:20px;}
+    .footer-col-title{
+      font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:.25em;
+      text-transform:uppercase;color:var(--gold);margin-bottom:16px;
+    }
+    .footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px;}
+    .footer-col ul a{font-size:.82rem;color:var(--text-muted);text-decoration:none;transition:color .3s;}
+    .footer-col ul a:hover{color:var(--lilac);}
+    .footer-bottom{
+      border-top:1px solid var(--border);padding:20px 48px;
+      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+      max-width:1200px;margin:0 auto;
+    }
+    .footer-copy{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);}
+    @media(max-width:768px){
+      .footer-main{grid-template-columns:1fr;gap:32px;padding:48px 24px 32px;}
+      .footer-bottom{padding:16px 24px;flex-direction:column;text-align:center;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Nav -->
+<nav id="nav">
+  <a href="/" class="nav-logo">PRIS<span>gen</span></a>
+  <ul class="nav-links">
+    <li><a href="/#about">About</a></li>
+    <li><a href="/#collection">Collection</a></li>
+    <li><a href="/#enquiry">Enquiry</a></li>
+    <li><a href="/#contact">Contact</a></li>
+  </ul>
+  <a href="/#collection" class="nav-cta">Shop Now</a>
+  <div class="nav-hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- Mobile Nav -->
+<div class="nav-mobile" id="mobileNav">
+  <button class="nav-mobile-close" onclick="toggleMobileNav()">✕</button>
+  <a href="/#about"      onclick="toggleMobileNav()">About</a>
+  <a href="/#collection" onclick="toggleMobileNav()">Collection</a>
+  <a href="/#enquiry"    onclick="toggleMobileNav()">Enquiry</a>
+  <a href="/#contact"    onclick="toggleMobileNav()">Contact</a>
+</div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a href="/">Home</a>
+  <span class="breadcrumb-sep">/</span>
+  <a href="/#collection">Collection</a>
+  <span class="breadcrumb-sep">/</span>
+  <a href="/#collection">{{ product.category }}</a>
+  <span class="breadcrumb-sep">/</span>
+  <span class="breadcrumb-current">{{ product.name }}</span>
+</div>
+
+<!-- Product Detail -->
+<div class="product-detail">
+
+  <!-- Gallery -->
+  <div class="gallery">
+    {% set is_new = (now - product.created_at).days < 14 %}
+    {% set images = [product.image1, product.image2, product.image3, product.image4] | select | list %}
+    <div class="gallery-main" id="galleryMain" onclick="openZoom()">
+      {% if is_new %}<span class="gallery-new-badge">New In</span>{% endif %}
+      {% if images %}
+        <img src="{{ images[0] }}" alt="{{ product.name }}" id="mainImg"/>
+      {% else %}
+        <div class="gallery-main-placeholder">
+          {% if 'bag' in product.name | lower or 'tote' in product.name | lower or 'satchel' in product.name | lower %}👜
+          {% elif 'platform' in product.name | lower %}👡
+          {% else %}👠{% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Thumbnail strip — auto-renders when product has 2–4 images -->
+    {% if images | length > 1 %}
+    <div class="gallery-thumbs">
+      {% for img in images %}
+      <div class="gallery-thumb {% if loop.first %}active{% endif %}" onclick="switchImg('{{ img }}', this)">
+        <img src="{{ img }}" alt="View {{ loop.index }}"/>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Info -->
+  <div class="product-info">
+    {% if (now - product.created_at).days < 14 %}
+    <span class="pi-tag">✦ New Arrival</span>
+    {% endif %}
+    <span class="pi-category">{{ product.category }}</span>
+    <h1 class="pi-name">{{ product.name }}</h1>
+
+    <div class="pi-divider"></div>
+
+    {% if product.price and product.price > 0 %}
+      <p class="pi-price">₦{{ "{:,.0f}".format(product.price) }}</p>
+    {% else %}
+      <p class="pi-price-req">Price on Request — WhatsApp us</p>
+    {% endif %}
+    <p class="pi-origin"><span>🇮🇹</span> Made in Italy</p>
+
+    <p class="pi-desc">{{ product.desc }}</p>
+
+    <!-- Size selector (shoes) -->
+    {% if 'bag' not in product.category | lower and 'bags' not in product.category | lower %}
+    <span class="pi-size-label">Select Size</span>
+    <div class="pi-sizes">
+      {% for s in ['EU 35','EU 36','EU 37','EU 38','EU 39','EU 40','EU 41'] %}
+      <button class="pi-size-btn" onclick="selectSize(this, '{{ s }}')">{{ s }}</button>
+      {% endfor %}
+    </div>
+    <p class="pi-size-note">Not sure of your size? WhatsApp us and we'll help.</p>
+    {% endif %}
+
+    <!-- CTAs -->
+    <div class="pi-ctas">
+      <button class="pi-btn-order" onclick="addToCartAndGo()">
+        🛒 Add to Cart
+      </button>
+      <button class="pi-btn-order" onclick="openOrder()" style="background:var(--purple);border:1px solid rgba(200,168,233,.3);">
+        💬 Order via WhatsApp
+      </button>
+      <a href="/#enquiry" class="pi-btn-enquire">Ask a Question</a>
+    </div>
+
+    <!-- Trust strip -->
+    <div class="pi-trust">
+      <div class="pi-trust-item"><span>🇮🇹</span> Authentic Italian</div>
+      <div class="pi-trust-item"><span>💬</span> WhatsApp Support</div>
+      <div class="pi-trust-item"><span>📦</span> Lagos Delivery</div>
+    </div>
+
+    <!-- Share -->
+    <div class="pi-share">
+      <span>Share</span>
+      <button class="pi-share-btn" onclick="shareWA()">WhatsApp</button>
+      <button class="pi-share-btn" onclick="copyLink()">Copy Link</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- You May Also Like -->
+{% if related %}
+<section class="related-section">
+  <div class="related-inner">
+    <span class="section-tag reveal">You May Also Like</span>
+    <h2 class="related-title reveal rd1">More from <em>the collection.</em></h2>
+    <div class="related-grid">
+      {% for r in related %}
+      <a href="/product/{{ r.id }}" class="related-card reveal {% if loop.index > 1 %}rd{{ [loop.index0 % 3, 3] | min }}{% endif %}">
+        {% set rimgs = [r.image1, r.image2, r.image3, r.image4] | select | list %}
+        <div class="rc-img" data-slide="0">
+          {% if rimgs %}
+            {% for img in rimgs %}
+            <img src="{{ img }}" alt="{{ r.name }}" class="{% if not loop.first %}slide-hidden{% endif %}"/>
+            {% endfor %}
+          {% else %}
+            {% if 'bag' in r.name | lower or 'tote' in r.name | lower %}👜{% elif 'platform' in r.name | lower %}👡{% else %}👠{% endif %}
+          {% endif %}
+          {% if rimgs | length > 1 %}
+          <div class="slide-prev" onclick="slideCard(event,this.parentElement,-1)"></div>
+          <div class="slide-next" onclick="slideCard(event,this.parentElement,1)"></div>
+          <div class="slide-dots">
+            {% for img in rimgs %}<div class="slide-dot {% if loop.first %}active{% endif %}"></div>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <p class="rc-cat">{{ r.category }}</p>
+        <h3 class="rc-name">{{ r.name }}</h3>
+        {% if r.price and r.price > 0 %}
+          <p class="rc-price">₦{{ "{:,.0f}".format(r.price) }}</p>
+        {% else %}
+          <p class="rc-price no-price">Price on request</p>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Footer -->
+<footer>
+  <div class="footer-main">
+    <div>
+      <div class="footer-logo">PRIS<span>gen</span> int'l Limited</div>
+      <p class="footer-tagline">Your feet, your statement.<br>Italian luxury in the heart of Lagos.</p>
+    </div>
+    <div class="footer-col">
+      <p class="footer-col-title">Navigate</p>
+      <ul>
+        <li><a href="/#about">About Us</a></li>
+        <li><a href="/#collection">Collection</a></li>
+        <li><a href="/#enquiry">Enquiry</a></li>
+        <li><a href="/#contact">Contact</a></li>
+        <li><a href="/#location">Location</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <p class="footer-col-title">Connect</p>
+      <ul>
+        <li><a href="https://wa.me/{{ whatsapp }}" target="_blank">WhatsApp</a></li>
+        <li><a href="https://www.facebook.com/cynthis.inya" target="_blank">Facebook</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-copy">© {{ now.year }} PRISgen int'l Limited · Lagos, Nigeria · Est. 2003</p>
+    <p class="footer-copy">Prepared by Bright Works</p>
+  </div>
+</footer>
+
+<!-- WhatsApp Bubble -->
+<a href="https://wa.me/{{ whatsapp }}" target="_blank" class="wa-bubble" title="Chat on WhatsApp">💬</a>
+
+<!-- Order Modal -->
+<div class="modal-overlay" id="orderModal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeOrder()">✕</button>
+    <p class="modal-tag">Place an Order</p>
+    <h2 class="modal-title">{{ product.name }}</h2>
+    <p class="modal-cat">{{ product.category }}</p>
+    {% if product.price and product.price > 0 %}
+    <p class="modal-price">₦{{ "{:,.0f}".format(product.price) }}</p>
+    {% endif %}
+    <div class="modal-divider"></div>
+    <label class="modal-label">Your Name</label>
+    <input class="modal-input" id="modalName" type="text" placeholder="Your full name"/>
+    <label class="modal-label">Phone / WhatsApp</label>
+    <input class="modal-input" id="modalPhone" type="tel" placeholder="e.g. 08012345678"/>
+    <label class="modal-label">Size <span style="opacity:.5">(if applicable)</span></label>
+    <input class="modal-input" id="modalSize" type="text" placeholder="e.g. EU 39" id="modalSizeField"/>
+    <button class="modal-wa-btn" onclick="sendOrder()">💬 Send Order via WhatsApp</button>
+    <div style="height:10px"></div>
+    <button class="modal-wa-btn" onclick="continueToPayProduct()" style="background:var(--purple);letter-spacing:.18em;">Continue to Pay →</button>
+  </div>
+</div>
+
+{% if is_admin %}
+<!-- Admin Bar -->
+<div class="admin-bar">
+  <div class="admin-bar-left">
+    <div class="admin-bar-dot"></div>
+    <span class="admin-bar-text">Lady C — Admin Active</span>
+  </div>
+  <div class="admin-bar-btns">
+    <a href="/lady/vault" class="admin-btn">Activity Vault</a>
+    <a href="#" onclick="alert('V4 — Edit panel coming soon!')" class="admin-btn">Edit Product</a>
+    <a href="/exitlady" class="admin-btn danger">Exit</a>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  const WHATSAPP = '{{ whatsapp }}';
+  const PRODUCT  = { name:'{{ product.name }}', cat:'{{ product.category }}', price:'{% if product.price and product.price > 0 %}₦{{ "{:,.0f}".format(product.price) }}{% endif %}' };
+  let selectedSize = '';
+
+  // ── Cursor ──
+  const cur = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx=0,my=0,rx=0,ry=0;
+  if(cur){
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+    (function a(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(a);})();
+  }
+
+  // ── Nav scroll ──
+  window.addEventListener('scroll',()=>{
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // ── Mobile nav ──
+  function toggleMobileNav(){
+    document.getElementById('mobileNav').classList.toggle('open');
+  }
+
+  // ── Reveal on scroll ──
+  const revealObs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+  },{ threshold:0.1 });
+  document.querySelectorAll('.reveal').forEach(el=>revealObs.observe(el));
+
+  // ── Gallery: switch image ──
+  function switchImg(src, thumb){
+    const mainImg = document.getElementById('mainImg');
+    if(mainImg){ mainImg.src = src; }
+    document.querySelectorAll('.gallery-thumb').forEach(t=>t.classList.remove('active'));
+    thumb.classList.add('active');
+  }
+
+  // ── Gallery zoom (simple full-screen) ──
+  function openZoom(){
+    const mainImg = document.getElementById('mainImg');
+    if(!mainImg) return;
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;cursor:zoom-out;backdrop-filter:blur(6px);';
+    const img = document.createElement('img');
+    img.src = mainImg.src;
+    img.style.cssText='max-width:90vw;max-height:90vh;object-fit:contain;border:1px solid rgba(200,168,233,.18);';
+    overlay.appendChild(img);
+    overlay.onclick = ()=>overlay.remove();
+    document.body.appendChild(overlay);
+  }
+
+  // ── Size selector ──
+  function selectSize(btn, size){
+    document.querySelectorAll('.pi-size-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSize = size;
+    // Pre-fill modal size field
+    const sf = document.getElementById('modalSizeField') || document.getElementById('modalSize');
+    if(sf) sf.value = size;
+  }
+
+  // ── Order modal ──
+  function openOrder(){
+    document.getElementById('orderModal').classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+  function closeOrder(){
+    document.getElementById('orderModal').classList.remove('open');
+    document.body.style.overflow='';
+  }
+  function closeModalOutside(e){
+    if(e.target.id==='orderModal') closeOrder();
+  }
+  function sendOrder(){
+    const name  = document.getElementById('modalName').value.trim();
+    const phone = document.getElementById('modalPhone').value.trim();
+    const size  = (document.getElementById('modalSizeField') || document.getElementById('modalSize')).value.trim();
+    if(!name||!phone){ alert('Please enter your name and phone number.'); return; }
+    let msg = `Hello! I'd like to order from PRISgen int'l Limited.\n\n`;
+    msg += `*Product:* ${PRODUCT.name}\n`;
+    msg += `*Category:* ${PRODUCT.cat}\n`;
+    if(PRODUCT.price) msg += `*Price:* ${PRODUCT.price}\n`;
+    if(size)          msg += `*Size:* ${size}\n`;
+    msg += `\n*My Details:*\nName: ${name}\nPhone: ${phone}`;
+    window.open('https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg),'_blank');
+    closeOrder();
+  }
+
+  // ── Per-card slideshow (related products) ──
+  function slideCard(e, imgDiv, dir) {
+    e.preventDefault(); e.stopPropagation();
+    const imgs = imgDiv.querySelectorAll('img');
+    const dots = imgDiv.querySelectorAll('.slide-dot');
+    if (imgs.length < 2) return;
+    let cur = parseInt(imgDiv.dataset.slide) || 0;
+    imgs[cur].classList.add('slide-hidden');
+    dots[cur] && dots[cur].classList.remove('active');
+    cur = (cur + dir + imgs.length) % imgs.length;
+    imgs[cur].classList.remove('slide-hidden');
+    dots[cur] && dots[cur].classList.add('active');
+    imgDiv.dataset.slide = cur;
+  }
+  function initSlideshows() {
+    document.querySelectorAll('.rc-img[data-slide]').forEach(imgDiv => {
+      const imgs = imgDiv.querySelectorAll('img');
+      if (imgs.length < 2) return;
+      setInterval(() => slideCard({ preventDefault:()=>{}, stopPropagation:()=>{} }, imgDiv, 1), 5000);
+    });
+  }
+  initSlideshows();
+
+  function shareWA(){
+    const msg = `Check out ${PRODUCT.name} on PRISgen int'l Limited 👠\n${window.location.href}`;
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  }
+  function copyLink(){
+    navigator.clipboard.writeText(window.location.href).then(()=>{
+      const btn = event.target;
+      const orig = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(()=>btn.textContent=orig, 2000);
+    });
+  }
+
+  // ── Cart helpers ──────────────────────────────────────────────────────────
+  function getCart(){ try{ return JSON.parse(localStorage.getItem('prisgen_cart')||'[]'); }catch(e){ return []; } }
+  function saveCart(c){ localStorage.setItem('prisgen_cart', JSON.stringify(c)); }
+
+  function addToCartAndGo(){
+    const cart = getCart();
+    const images = {{ (product.images | tojson) if product.images else '[]' }};
+    cart.push({
+      id:      {{ product.id }},
+      name:    {{ product.name | tojson }},
+      price:   {{ product.price or 0 }},
+      cat:     {{ product.category | tojson }},
+      size:    selectedSize || '',
+      image:   images[0] || '',
+      qty:     1
+    });
+    saveCart(cart);
+    window.location.href = '/cart';
+  }
+
+  // ── Selar routing (product modal) ─────────────────────────────────────────
+  async function continueToPayProduct(){
+    const name  = document.getElementById('modalName').value.trim();
+    const phone = document.getElementById('modalPhone').value.trim();
+    if(!name||!phone){ alert('Please enter your name and phone number first.'); return; }
+    const btn = event.target;
+    btn.textContent = 'Routing…';
+    btn.disabled = true;
+    try {
+      const res  = await fetch('/selar-route', { method:'POST', headers:{'Content-Type':'application/json'} });
+      const data = await res.json();
+      window.open(data.url, '_blank');
+      closeOrder();
+    } catch(e) {
+      alert('Connection error. Please try again.');
+    } finally {
+      btn.textContent = 'Continue to Pay →';
+      btn.disabled = false;
+    }
+  }
+</script>
