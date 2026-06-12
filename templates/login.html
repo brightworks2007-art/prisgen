@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PRISgen int'l Limited — Private Access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;0,700;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:       #5B2D8E;
+      --purple-dark:  #2D1459;
+      --purple-light: #C8A8E9;
+      --gold:         #C9973A;
+      --gold-light:   #E8C97A;
+      --dark:         #0A0612;
+      --dark-mid:     #130D20;
+      --dark-card:    #1A1028;
+      --text:         #F5EEFF;
+      --text-sub:     rgba(200,168,233,0.75);
+      --text-muted:   rgba(200,168,233,0.4);
+      --border:       rgba(200,168,233,0.2);
+    }
+    html.light {
+      --dark:         #FBF7FB;
+      --dark-mid:     #EFE4EF;
+      --dark-card:    #FFFFFF;
+      --text:         #2A0E28;
+      --text-sub:     rgba(100,40,96,0.75);
+      --text-muted:   rgba(130,70,125,0.45);
+      --border:       rgba(160,100,155,0.22);
+      --purple-light: #C9A8C8;
+      --gold:         #A0721A;
+    }
+    .theme-toggle-login {
+      position: fixed; top: 20px; right: 24px; z-index: 100;
+      background: none; border: 1px solid var(--border);
+      color: var(--text-muted); padding: 7px 13px; cursor: pointer;
+      font-family: 'DM Mono', monospace; font-size: .55rem;
+      letter-spacing: .18em; text-transform: uppercase; transition: all .3s;
+    }
+    .theme-toggle-login:hover { border-color: var(--gold); color: var(--gold); }
+    body { transition: background .4s, color .4s; }
+
+    body {
+      min-height: 100vh;
+      background: var(--dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      padding: 24px;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(91,45,142,0.25) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 20%, rgba(200,168,233,0.07) 0%, transparent 45%),
+        radial-gradient(ellipse at 60% 80%, rgba(201,151,58,0.06) 0%, transparent 40%);
+      animation: fadeIn 0.9s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Corner decorations */
+    .corner { position: fixed; width: 48px; height: 48px; }
+    .c-tl { top: 20px; left: 20px; border-top: 1px solid rgba(201,151,58,0.3); border-left: 1px solid rgba(201,151,58,0.3); }
+    .c-tr { top: 20px; right: 20px; border-top: 1px solid rgba(201,151,58,0.3); border-right: 1px solid rgba(201,151,58,0.3); }
+    .c-bl { bottom: 20px; left: 20px; border-bottom: 1px solid rgba(201,151,58,0.3); border-left: 1px solid rgba(201,151,58,0.3); }
+    .c-br { bottom: 20px; right: 20px; border-bottom: 1px solid rgba(201,151,58,0.3); border-right: 1px solid rgba(201,151,58,0.3); }
+
+    .card {
+      background: var(--dark-card);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 400px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+      padding: 44px 36px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header::before {
+      content: 'LC';
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 9rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.04);
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      line-height: 1;
+      pointer-events: none;
+      letter-spacing: -0.05em;
+    }
+
+    .brand-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.05em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-name span { color: var(--gold); font-style: italic; }
+
+    .brand-full {
+      font-size: 0.58rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(200,168,233,0.7);
+      margin-top: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .lady-c-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      background: rgba(201,151,58,0.12);
+      border: 1px solid rgba(201,151,58,0.3);
+      padding: 8px 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .lady-c-badge span {
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .lady-c-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .card-body { padding: 36px; }
+
+    .error-box {
+      background: rgba(229,57,53,0.08);
+      border: 1px solid rgba(229,57,53,0.3);
+      color: #ff6b6b;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .field-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .pwd-wrap { position: relative; margin-bottom: 20px; }
+
+    .pwd-input {
+      width: 100%;
+      background: var(--dark-mid);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      padding: 14px 48px 14px 18px;
+      outline: none;
+      transition: border-color 0.3s;
+      letter-spacing: 0.15em;
+    }
+
+    .pwd-input::placeholder {
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      font-size: 0.85rem;
+    }
+
+    .pwd-input:focus { border-color: var(--purple-light); }
+
+    .pwd-eye {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      transition: color 0.3s;
+    }
+
+    .pwd-eye:hover { color: var(--purple-light); }
+
+    .enter-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+      color: #fff;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      padding: 16px;
+      cursor: pointer;
+      transition: opacity 0.3s, transform 0.2s;
+      margin-bottom: 24px;
+    }
+
+    .enter-btn:hover  { opacity: 0.88; }
+    .enter-btn:active { transform: scale(0.99); }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .divider-text {
+      font-size: 0.5rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .back-link:hover { color: var(--purple-light); }
+
+    .card-footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 36px;
+      text-align: center;
+    }
+
+    .footer-note {
+      font-size: 0.5rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .footer-note span { color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <div class="corner c-tl"></div>
+  <div class="corner c-tr"></div>
+  <div class="corner c-bl"></div>
+  <div class="corner c-br"></div>
+
+  <div class="card">
+
+    <div class="card-header">
+      <div class="brand-name">PRIS<span>gen</span></div>
+      <p class="brand-full">int'l Limited &nbsp;·&nbsp; Private Access</p>
+      <div class="lady-c-badge">
+        <div class="lady-c-dot"></div>
+        <span>Lady C Portal</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+
+      {% if error %}
+      <div class="error-box">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="/lady">
+        <label class="field-label" for="pwdField">Passphrase</label>
+        <div class="pwd-wrap">
+          <input class="pwd-input" type="password" name="password"
+                 id="pwdField" placeholder="Enter your passphrase" autofocus
+                 autocomplete="current-password"/>
+          <button type="button" class="pwd-eye" onclick="togglePwd()" title="Show/hide">👁</button>
+        </div>
+        <button class="enter-btn" type="submit">Enter</button>
+      </form>
+
+      <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">✦</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <a href="/" class="back-link">← Back to store</a>
+
+    </div>
+
+    <div class="card-footer">
+      <p class="footer-note">PRISgen int'l Limited &nbsp;·&nbsp; <span>Lagos, Nigeria</span></p>
+    </div>
+
+  </div>
+
+  <button class="theme-toggle-login" id="themeToggle" onclick="toggleTheme()">🌙</button>
+
+  <script>
+    function togglePwd() {
+      const f = document.getElementById('pwdField');
+      f.type  = f.type === 'password' ? 'text' : 'password';
+    }
+
+  // ── Theme toggle ────────────────────────────────────────────────────────────
+  function toggleTheme(){
+    const isLight = document.documentElement.classList.toggle('light');
+    localStorage.setItem('prisgen-theme', isLight ? 'light' : 'dark');
+    document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  }
+  (function(){
+    const saved = localStorage.getItem('prisgen-theme') || 'dark';
+    if(saved === 'light') document.documentElement.classList.add('light');
+    const btn = document.getElementById('themeToggle');
+    if(btn) btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  })();
+  </script>
+
+</body>
+</html>
