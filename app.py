@@ -47,6 +47,10 @@ class LoginAttempt(db.Model):
     ip        = db.Column(db.String(60))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+class SelarCounter(db.Model):
+    id      = db.Column(db.Integer, primary_key=True)
+    count   = db.Column(db.Integer, default=0)  # total checkouts ever
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_password():
     try:
@@ -124,7 +128,31 @@ def product_to_dict(p):
         'image': p.image1 or ''
     }
 
-# ── Public routes ─────────────────────────────────────────────────────────────
+# ── Selar routing ─────────────────────────────────────────────────────────────
+SELAR_A = 'https://selar.com/m/marcus-bright1'          # Account A
+SELAR_B = 'https://selar.com/m/PLACEHOLDER_ACCOUNT_B'   # Account B — swap when ready
+
+@app.route('/selar-route', methods=['POST'])
+def selar_route():
+    """Increment global counter; first 3 of every 6 → Selar A, next 3 → Selar B."""
+    row = SelarCounter.query.get(1)
+    if not row:
+        row = SelarCounter(id=1, count=0)
+        db.session.add(row)
+    row.count += 1
+    db.session.commit()
+    # position within the current block of 6
+    slot = ((row.count - 1) % 6)   # 0-5
+    url  = SELAR_A if slot < 3 else SELAR_B
+    log_event(f'Checkout routed → {"Selar A" if slot < 3 else "Selar B"} (checkout #{row.count})')
+    return jsonify({'url': url})
+
+
+@app.route('/cart')
+def cart():
+    whatsapp = os.environ.get('WHATSAPP_NUMBER', '2348023905056')
+    return render_template('cart.html', whatsapp=whatsapp, is_admin=is_admin())
+
 @app.route('/')
 def index():
     products   = Product.query.filter_by(visible=True).order_by(Product.id.desc()).all()
