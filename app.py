@@ -28,10 +28,12 @@ class Product(db.Model):
     desc        = db.Column(db.Text, default='')
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
     visible     = db.Column(db.Boolean, default=True)
-    image1      = db.Column(db.String(500), nullable=True)
-    image2      = db.Column(db.String(500), nullable=True)
-    image3      = db.Column(db.String(500), nullable=True)
-    image4      = db.Column(db.String(500), nullable=True)
+    image1        = db.Column(db.String(500), nullable=True)
+    image2        = db.Column(db.String(500), nullable=True)
+    image3        = db.Column(db.String(500), nullable=True)
+    image4        = db.Column(db.String(500), nullable=True)
+    stock         = db.Column(db.Integer, nullable=True)      # None = unlimited
+    limited_stock = db.Column(db.Boolean, default=False)      # manual toggle
 
 class ActivityLog(db.Model):
     id        = db.Column(db.Integer, primary_key=True)
@@ -119,14 +121,84 @@ def clear_attempts(ip):
 
 def product_to_dict(p):
     images = [i for i in [p.image1, p.image2, p.image3, p.image4] if i]
+    stock  = p.stock if p.stock is not None else None
     return {
         'id': p.id, 'name': p.name, 'price': p.price,
         'category': p.category, 'desc': p.desc,
         'visible': p.visible,
-        'is_new': (datetime.utcnow() - p.created_at).days < 14,
-        'images': images,
-        'image': p.image1 or ''
+        'is_new':        (datetime.utcnow() - p.created_at).days < 14,
+        'images':        images,
+        'image':         p.image1 or '',
+        'stock':         stock,
+        'limited_stock': bool(p.limited_stock),
+        'sold_out':      stock is not None and stock <= 0
     }
+
+# ── Abandoned Cart model ──────────────────────────────────────────────────────
+class AbandonedCart(db.Model):
+    id         = db.Column(db.Integer, primary_key=True)
+    phone      = db.Column(db.String(30))
+    name       = db.Column(db.String(120), default='')
+    items_json = db.Column(db.Text)          # JSON string of cart items
+    saved_at   = db.Column(db.DateTime, default=datetime.utcnow)
+    recovered  = db.Column(db.Boolean, default=False)
+
+@app.route('/save-cart', methods=['POST'])
+def save_cart():
+    """Called by frontend when user fills phone on cart page."""
+    import json
+    data  = request.get_json() or {}
+    phone = (data.get('phone') or '').strip()
+    name  = (data.get('name') or '').strip()
+    items = data.get('items', [])
+    if not phone or not items:
+        return jsonify({'ok': False}), 400
+    # Upsert by phone — update if exists, else create
+    row = AbandonedCart.query.filter_by(phone=phone, recovered=False).first()
+    if row:
+        row.items_json = json.dumps(items)
+        row.name       = name
+        row.saved_at   = datetime.utcnow()
+    else:
+        row = AbandonedCart(phone=phone, name=name, items_json=json.dumps(items))
+        db.session.add(row)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/admin/abandoned-carts')
+def abandoned_carts():
+    if not is_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    import json
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+    carts  = AbandonedCart.query.filter(
+        AbandonedCart.recovered == False,
+        AbandonedCart.saved_at  <= cutoff
+    ).order_by(AbandonedCart.saved_at.desc()).all()
+    result = []
+    for c in carts:
+        try:
+            items = json.loads(c.items_json or '[]')
+        except Exception:
+            items = []
+        result.append({
+            'id':       c.id,
+            'phone':    c.phone,
+            'name':     c.name,
+            'items':    items,
+            'saved_at': c.saved_at.strftime('%d %b %Y, %H:%M'),
+            'hours_ago': round((datetime.utcnow() - c.saved_at).total_seconds() / 3600, 1)
+        })
+    return jsonify(result)
+
+@app.route('/admin/mark-recovered/<int:cid>', methods=['POST'])
+def mark_recovered(cid):
+    if not is_admin():
+        return jsonify({'error': 'Unauthorized'}), 403
+    row = AbandonedCart.query.get_or_404(cid)
+    row.recovered = True
+    db.session.commit()
+    return jsonify({'ok': True})
 
 # ── Selar routing ─────────────────────────────────────────────────────────────
 SELAR_A = 'https://selar.com/m/marcus-bright1'          # Account A
@@ -169,32 +241,14 @@ def index():
 # ── Admin: Ghost entrance ─────────────────────────────────────────────────────
 @app.route('/lady', methods=['GET', 'POST'])
 def lady():
-    ip = get_ip(); error = None
-    if is_admin():
-        return redirect(url_for('admin_panel'))  # ← sends straight to panel
-    if request.method == 'POST':
-        if is_blocked(ip):
-            log_event('Blocked IP tried Lady C login', success=False)
-            return render_template('login.html',
-                                   error='Too many failed attempts. Try again in 30 minutes.')
-        entered = request.form.get('password', '').strip()
-        if entered == get_password():
-            session.clear()
-            session['is_admin']  = True
-            session['admin_ip']  = ip
-            session.permanent    = True
-            clear_attempts(ip)
-            log_event('Lady C login successful')
-            return redirect(url_for('admin_panel'))  # ← lands on admin panel after login
-        else:
-            record_failed_attempt(ip)
-            window    = datetime.utcnow() - timedelta(minutes=30)
-            remaining = 5 - LoginAttempt.query.filter(
-                LoginAttempt.ip == ip,
-                LoginAttempt.timestamp >= window).count()
-            log_event('Failed Lady C login attempt', success=False)
-            error = f'Incorrect passphrase. {remaining} attempt(s) remaining.'
-    return render_template('login.html', error=error)
+    """Secret URL — visiting it directly grants admin access, no password needed."""
+    ip = get_ip()
+    session.clear()
+    session['is_admin'] = True
+    session['admin_ip'] = ip
+    session.permanent   = True
+    log_event('Lady C accessed via secret URL')
+    return redirect(url_for('admin_panel'))
 
 @app.route('/exitlady')
 def exitlady():
@@ -209,7 +263,8 @@ def admin_panel():
         return redirect(url_for('lady'))
     return render_template('admin.html',
                            cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', 'daxerardc'),
-                           upload_preset='wi6uf3xc')
+                           upload_preset='wi6uf3xc',
+                           whatsapp=os.environ.get('WHATSAPP_NUMBER', '2348023905056'))
 
 # ── Admin: Products API ───────────────────────────────────────────────────────
 @app.route('/admin/add', methods=['POST'])
@@ -219,15 +274,18 @@ def add_product():
     data = request.get_json()
     if not data or not data.get('name'):
         return jsonify({'error': 'Name is required'}), 400
+    raw_stock = data.get('stock')
     p = Product(
-        name     = data['name'].strip(),
-        price    = float(data.get('price', 0)),
-        image1   = data.get('image1') or None,
-        image2   = data.get('image2') or None,
-        image3   = data.get('image3') or None,
-        image4   = data.get('image4') or None,
-        category = data.get('category', 'Italian Slides & Flats').strip(),
-        desc     = data.get('desc', '').strip()
+        name          = data['name'].strip(),
+        price         = float(data.get('price', 0)),
+        image1        = data.get('image1') or None,
+        image2        = data.get('image2') or None,
+        image3        = data.get('image3') or None,
+        image4        = data.get('image4') or None,
+        category      = data.get('category', 'Italian Slides & Flats').strip(),
+        desc          = data.get('desc', '').strip(),
+        stock         = int(raw_stock) if raw_stock not in (None, '', 'null') else None,
+        limited_stock = bool(data.get('limited_stock', False))
     )
     db.session.add(p)
     db.session.commit()
@@ -240,14 +298,18 @@ def edit_product(pid):
         return jsonify({'error': 'Unauthorized'}), 403
     p    = Product.query.get_or_404(pid)
     data = request.get_json()
-    if data.get('name'):      p.name     = data['name'].strip()
-    if 'price'    in data:    p.price    = float(data['price'])
-    if data.get('category'):  p.category = data['category'].strip()
-    if 'desc'     in data:    p.desc     = data['desc'].strip()
-    if 'image1'   in data:    p.image1   = data['image1'] or None
-    if 'image2'   in data:    p.image2   = data['image2'] or None
-    if 'image3'   in data:    p.image3   = data['image3'] or None
-    if 'image4'   in data:    p.image4   = data['image4'] or None
+    if data.get('name'):      p.name          = data['name'].strip()
+    if 'price'    in data:    p.price         = float(data['price'])
+    if data.get('category'):  p.category      = data['category'].strip()
+    if 'desc'     in data:    p.desc          = data['desc'].strip()
+    if 'image1'   in data:    p.image1        = data['image1'] or None
+    if 'image2'   in data:    p.image2        = data['image2'] or None
+    if 'image3'   in data:    p.image3        = data['image3'] or None
+    if 'image4'   in data:    p.image4        = data['image4'] or None
+    if 'stock'    in data:
+        raw_s = data['stock']
+        p.stock = int(raw_s) if raw_s not in (None, '', 'null') else None
+    if 'limited_stock' in data: p.limited_stock = bool(data['limited_stock'])
     db.session.commit()
     log_event(f'Product edited: {p.name}')
     return jsonify(product_to_dict(p))
